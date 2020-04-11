@@ -1,22 +1,36 @@
 const Discord = require("discord.js");
 const client = new Discord.Client();
 const config = require("./config.json");
- 
+
+function randomInt(low, high) {
+  return Math.floor(Math.random() * (high - low) + low)
+}
+
 client.on("ready", () => {
   console.log("I am ready!");
 });
- 
-const prefix = "##";
 
 client.on("message", (message) => {
-    if (!message.content.startsWith(config.prefix) || message.author.bot) return;
-   
-    if (message.content.startsWith(config.prefix + "ping")) {
-      message.channel.send("pong!");
-    } else
-    if (message.content.startsWith(config.prefix + "foo")) {
-      message.channel.send("bar!");
+
+    if (message.author.bot) return;
+    if (message.content.indexOf(config.prefix) !== 0) return;
+    if (message.content.match(/&\d{1,}d\d{1,}/) == null) return;
+    if (message.author.id == config.ownerId) {
+      message.channel.send("Blessed be the creator !");
     }
+
+    const args = message.content.slice(config.prefix.length).trim().split(/d/);
+    const command = args.shift().toLowerCase();
+    const numberOfRolls = Number(command);
+    const dice          = Number(args.shift().toLowerCase());
+
+    rollArray = [];
+    for (var i=0; i<numberOfRolls; i++) {
+      rollArray.push(randomInt(1,dice));
+    }
+
+    message.channel.send("Rolling " + numberOfRolls + " dice of " + dice);
+    message.channel.send(rollArray.toString());
   });
 
   client.login(config.token);
