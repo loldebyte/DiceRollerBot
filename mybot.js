@@ -8,16 +8,19 @@ function randomInt(low, high) {
 
 client.on("ready", () => {
   console.log("I am ready!");
+  client.user.setActivity("Tabletop RPGs", {type: "PLAYING"});
 });
 
 client.on("message", (message) => {
 
     if (message.author.bot) return;
     if (message.content.indexOf(config.prefix) !== 0) return;
-    if (message.content.match(/&\d{1,}d\d{1,}/) == null) return;
-    if (message.author.id == config.ownerId) {
-      message.channel.send("Blessed be the creator !");
-    }
+    if (message.content.match(/&\d{1,}d\d{1,}/) == null) {
+      if (message.content.match(/&help/) != null) {
+        message.channel.send("USAGE : &xdy to roll x y-sided dices");
+        return;
+      } else return;
+    };
 
     const args = message.content.slice(config.prefix.length).trim().split(/d/);
     const command = args.shift().toLowerCase();
