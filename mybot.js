@@ -1,5 +1,6 @@
 const Discord = require("discord.js");
 const client = new Discord.Client();
+const config = require("./config.json");
  
 client.on("ready", () => {
   console.log("I am ready!");
@@ -8,14 +9,14 @@ client.on("ready", () => {
 const prefix = "##";
 
 client.on("message", (message) => {
-    if (!message.content.startsWith(prefix) || message.author.bot) return;
+    if (!message.content.startsWith(config.prefix) || message.author.bot) return;
    
-    if (message.content.startsWith(prefix + "ping")) {
+    if (message.content.startsWith(config.prefix + "ping")) {
       message.channel.send("pong!");
     } else
-    if (message.content.startsWith(prefix + "foo")) {
+    if (message.content.startsWith(config.prefix + "foo")) {
       message.channel.send("bar!");
     }
   });
 
-client.login("Njk4MjIzMTI5MDA0MjEyMjM1.XpGLHA.KjqKXm4PJ8zKJuOkd7HfawQYg8Y");
+  client.login(config.token);
