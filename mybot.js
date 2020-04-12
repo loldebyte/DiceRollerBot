@@ -15,11 +15,12 @@ function greater(a, b) {
 }
 
 function doRolls(rollCommand) {
-  roll          = rollCommand.split(/d/);
-  numberOfRolls = Number(roll.shift().toLowerCase());
-  dice          = Number(roll.shift().toLowerCase());
+  let rollz         = rollCommand;
+  rollz             = rollz.split(/d/);
+  let numberOfRolls = Number(rollz.shift());
+  let dice          = Number(rollz.shift());
 
-  rollArray = [];
+  let rollArray = [];
   for (var i=0; i<numberOfRolls; i++) {
     rollArray.push(randomInt(1,dice+1));
   }
@@ -28,21 +29,29 @@ function doRolls(rollCommand) {
 }
 
 function getNbRolls(rollCommand) {
-  roll          = rollCommand.split(/d/);
-  numberOfRolls = Number(roll.shift().toLowerCase());
+  let roll          = rollCommand.split(/d/);
+  let numberOfRolls = Number(roll.shift().toLowerCase());
   return numberOfRolls;
 }
 
-function testAgainstSummedRolls(rollCommand, test, comparisonFunction) {
-  rolls = doRolls(rollCommand);
-  nbRolls = getNbRolls(rollCommand);
+function getDice(rollCommand) {
+  let roll = rollCommand.split(/d/);
+  return Number(roll[1]);
+}
 
-  rollval = 0;
+function testAgainstSummedRolls(rollCommand, test, comparisonFunction, value) {
+  let rolls = doRolls(rollCommand);
+  let rollsBackup = [...rolls];
+  let nbRolls = getNbRolls(rollCommand);
+
+  let rollval = 0;
   for (var i=0; i<nbRolls; i++) {
     rollval += rolls.shift();
   }
+  value.push(rollval);
+  value.push(rollsBackup);
 
-  return comparisonFunction(rollval, test);
+  return comparisonFunction(rollval, Number(test));
 }
 
 function multipleTests(rollCommand, test, comparisonFunction) {
@@ -71,13 +80,14 @@ client.on("message", (message) => {
           message.channel.send("ERROR : unexpected arguments or arguments missing, please use &help for usage guidelines !");
           return;
         } else {
-          roll           = args.shift().toLowerCase();
-          testTreshold   = args.shift().toLowerCase();
-          testComp       = args.shift();
-          if (testComp !== undefined) {
+          let roll           = args.shift().toLowerCase();
+          let testTreshold   = args.shift().toLowerCase();
+          let testComp       = args.shift();
+          
+          if (testComp !== undefined) { // if testComp === undefined, it means the argument was omitted
             testComp = testComp.toLowerCase();
           }
-          testAgainstSum = args.shift(); // test if arg is there with testSum === undefined
+          let testAgainstSum = args.shift();
           if (testAgainstSum !== undefined) {
             testAgainstSum = testAgainstSum.toLowerCase();
           }
@@ -85,6 +95,7 @@ client.on("message", (message) => {
           if (testComp === undefined) {
             comparison = lower;
             testFunc = testAgainstSummedRolls;
+            comparisonMessage = "less than";
           } else {
             switch (testComp) {
               case "l":
@@ -95,6 +106,7 @@ client.on("message", (message) => {
               case "d":
               case "down":
                 comparison = lower;
+                comparisonMessage = "less than";
                 break;
               case "a":
               case "above":
@@ -103,6 +115,7 @@ client.on("message", (message) => {
               case "greater":
               case "great":
                 comparison = greater;
+                comparisonMessage = "more than";
                 break;
 
               default:
@@ -138,14 +151,28 @@ client.on("message", (message) => {
             }
 
           }
-
-          success = testFunc(roll, testTreshold, comparison);
+          let rollResult = [];
+          let success = [];
+          let rollBackup = roll;
+          success.push(testFunc(roll, testTreshold, comparison, rollResult));
+          message.channel.send(rollResult.toString());
           if (success.length >1) {
             // TO DO
             // multi test output here
           } else {
-            message.channel.send(success.toString());
-            // single summed-roll test output here
+            switch (success[0]) {
+              case true:
+                message.channel.send("You tried to roll " + comparisonMessage + " " + testTreshold + " with " + rollBackup + " and you rolled " + rollResult.shift() + " so the test succeeded !" + "\nDetailed rolls : " + rollResult.toString());
+                break;
+
+              case false:
+                message.channel.send("You tried to roll " + comparisonMessage + " " + testTreshold + " with " + rollBackup + " but you rolled " + rollResult.shift() + " and the test failed !" + "\nDetailed rolls : " + rollResult.toString());
+                break;
+
+              default:
+                message.channel.send("FATAL ERROR : success SHOULD BE BOOLEAN BUT IS " + success[0]);
+                return;
+            }
           }
         }
         break;
@@ -158,8 +185,7 @@ client.on("message", (message) => {
 
         rollArray = doRolls(command);
     
-        message.channel.send("Rolling " + numberOfRolls + " dice of " + dice);
-        message.channel.send(rollArray.toString());
+        message.channel.send("Rolling " + getNbRolls(command) + " dice of " + getDice(command) + "\nSum : " + rollArray.reduce((a, b) => a + b).toString() + "\nDetailed rolls : " + rollArray.toString());
         break;
     }
 
