@@ -24,7 +24,7 @@ function doRolls(rollCommand) {
     rollArray.push(randomInt(1,dice+1));
   }
 
-  return rollArray();
+  return rollArray;
 }
 
 function getNbRolls(rollCommand) {
@@ -84,6 +84,7 @@ client.on("message", (message) => {
 
           if (testComp === undefined) {
             comparison = lower;
+            testFunc = testAgainstSummedRolls;
           } else {
             switch (testComp) {
               case "l":
@@ -143,7 +144,7 @@ client.on("message", (message) => {
             // TO DO
             // multi test output here
           } else {
-            // TO DO
+            message.channel.send(success.toString());
             // single summed-roll test output here
           }
         }
