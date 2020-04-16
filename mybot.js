@@ -51,11 +51,20 @@ function testAgainstSummedRolls(rollCommand, test, comparisonFunction, value) {
   value.push(rollval);
   value.push(rollsBackup);
 
-  return comparisonFunction(rollval, Number(test));
+  return [comparisonFunction(rollval, Number(test))];
 }
 
-function multipleTests(rollCommand, test, comparisonFunction) {
+function multipleTests(rollCommand, test, comparisonFunction, value) {
+  let rolls = doRolls(rollCommand);
+  let nbRolls = getNbRolls(rollCommand);
 
+  value.push(nbRolls);
+  value.push(rolls);
+  let results = []
+  for (const roll in rolls) {
+    results.push(comparisonFunction(rolls[roll], Number(test)));
+  }
+  return results;
 }
 
 client.on("ready", () => {
@@ -154,11 +163,16 @@ client.on("message", (message) => {
           let rollResult = [];
           let success = [];
           let rollBackup = roll;
-          success.push(testFunc(roll, testTreshold, comparison, rollResult));
-          message.channel.send(rollResult.toString());
-          if (success.length >1) {
-            // TO DO
-            // multi test output here
+          success = testFunc(roll, testTreshold, comparison, rollResult);
+          message.channel.send(success.toString());
+          message.channel.send(success.length);
+          if (success.length > 1) {
+            let nbRoll = rollResult.shift();
+            let testsOutput = []
+            for (var i=0; i<nbRoll; i++) {
+              testsOutput.push(success[i] ? "success! ": "failed! ");
+            }
+            message.channel.send("You tried to roll  " + comparisonMessage + " " + testTreshold + " on " + success.length + " tests, and here are your tests results : " + testsOutput.toString() + "\nYou rolled " + rollResult.toString())
           } else {
             switch (success[0]) {
               case true:
