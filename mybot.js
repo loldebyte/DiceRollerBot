@@ -7,11 +7,19 @@ function randomInt(low, high) {
 }
 
 function lower(a, b) {
-  return (a < b);
+  return (a <= b);
 }
 
 function greater(a, b) {
-  return (a > b);
+  return (a >= b);
+}
+
+function plus(a,b) {
+  return (a+b);
+}
+
+function minus(a,b) {
+  return(a-b);
 }
 
 function doRolls(rollCommand) {
@@ -39,7 +47,7 @@ function getDice(rollCommand) {
   return Number(roll[1]);
 }
 
-function testAgainstSummedRolls(rollCommand, test, comparisonFunction, value) {
+function testAgainstSummedRolls(rollCommand, test, modifier, modFunction, comparisonFunction, value) {
   let rolls = doRolls(rollCommand);
   let rollsBackup = [...rolls];
   let nbRolls = getNbRolls(rollCommand);
@@ -48,13 +56,14 @@ function testAgainstSummedRolls(rollCommand, test, comparisonFunction, value) {
   for (var i=0; i<nbRolls; i++) {
     rollval += rolls.shift();
   }
+  rollval = modFunction(rollval, modifier);
   value.push(rollval);
   value.push(rollsBackup);
 
   return [comparisonFunction(rollval, Number(test))];
 }
 
-function multipleTests(rollCommand, test, comparisonFunction, value) {
+function multipleTests(rollCommand, test, modifier, modFunction, comparisonFunction, value) {
   let rolls = doRolls(rollCommand);
   let nbRolls = getNbRolls(rollCommand);
 
@@ -62,7 +71,7 @@ function multipleTests(rollCommand, test, comparisonFunction, value) {
   value.push(rolls);
   let results = []
   for (const roll in rolls) {
-    results.push(comparisonFunction(rolls[roll], Number(test)));
+    results.push(comparisonFunction(modFunction(rolls[roll], modifier), Number(test)));
   }
   return results;
 }
@@ -81,15 +90,29 @@ client.on("message", (message) => {
     const command = args.shift().toLowerCase();
     switch (command) {
       case "help":
-        message.channel.send("USAGE : &xdy to roll x y-sided dices");
+        message.channel.send("USAGE :\n&xdy to roll x y-sided dices\n&test xdy value option1 option2 to roll x y-sided dices & try to roll less than value. Options1 are a for above or l for less. Options2 are m for multiple tests or y to sum the rolls before comparison");
         break;
 
       case "test":
-        if (message.content.match(/&test \d{1,}d\d{1,} \d{1,}.*/) == null) {
+        if (message.content.match(/&test \d{1,}d\d{1,}(?:(\+|-)\d*) \d{1,}.*/) == null) {
           message.channel.send("ERROR : unexpected arguments or arguments missing, please use &help for usage guidelines !");
           return;
         } else {
-          let roll           = args.shift().toLowerCase();
+          if (message.content.includes('+')) {
+            let detailedRoll = args.shift().split(/\+/);
+            roll = detailedRoll.shift();
+            mod  = Number(detailedRoll.shift());
+            modFunc = plus;
+          } else if (message.content.includes('-')) {
+            let detailedRoll = args.shift().split(/-/);
+            roll = detailedRoll.shift();
+            mod = Number(detailedRoll.shift());
+            modFunc = minus;
+          } else {
+            roll             = args.shift().toLowerCase();
+            mod = 0;
+            modFunc = plus;
+          }
           let testTreshold   = args.shift().toLowerCase();
           let testComp       = args.shift();
           
@@ -163,9 +186,7 @@ client.on("message", (message) => {
           let rollResult = [];
           let success = [];
           let rollBackup = roll;
-          success = testFunc(roll, testTreshold, comparison, rollResult);
-          message.channel.send(success.toString());
-          message.channel.send(success.length);
+          success = testFunc(roll, testTreshold, mod, modFunc, comparison, rollResult);
           if (success.length > 1) {
             let nbRoll = rollResult.shift();
             let testsOutput = []
@@ -174,13 +195,14 @@ client.on("message", (message) => {
             }
             message.channel.send("You tried to roll  " + comparisonMessage + " " + testTreshold + " on " + success.length + " tests, and here are your tests results : " + testsOutput.toString() + "\nYou rolled " + rollResult.toString())
           } else {
+            modMessage = modFunc==plus? "bonus " : "malus ";
             switch (success[0]) {
               case true:
-                message.channel.send("You tried to roll " + comparisonMessage + " " + testTreshold + " with " + rollBackup + " and you rolled " + rollResult.shift() + " so the test succeeded !" + "\nDetailed rolls : " + rollResult.toString());
+                message.channel.send("You tried to roll " + comparisonMessage + " " + testTreshold + " with " + rollBackup + " and a " + modMessage + " of " +  mod + " and you rolled " + rollResult.shift() + " so the test succeeded !" + "\nDetailed rolls : " + rollResult.toString());
                 break;
 
               case false:
-                message.channel.send("You tried to roll " + comparisonMessage + " " + testTreshold + " with " + rollBackup + " but you rolled " + rollResult.shift() + " and the test failed !" + "\nDetailed rolls : " + rollResult.toString());
+                message.channel.send("You tried to roll " + comparisonMessage + " " + testTreshold + " with " + rollBackup + " and a " + modMessage + " of " +  mod + " but you rolled " + rollResult.shift() + " and the test failed !" + "\nDetailed rolls : " + rollResult.toString());
                 break;
 
               default:
@@ -192,7 +214,7 @@ client.on("message", (message) => {
         break;
 
       default:
-        if (message.content.match(/&\d{1,}d\d{1,}/) == null) {
+        if (message.content.match(/^&\d{1,}d\d{1,}$/) == null) {
           message.channel.send("This is not a valid command, please enter " + config.prefix + "help for usage guidelines !");
           return;
         }
