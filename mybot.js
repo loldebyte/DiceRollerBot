@@ -68,7 +68,7 @@ function multipleTests(rollCommand, test, modifier, modFunction, comparisonFunct
   let nbRolls = getNbRolls(rollCommand);
 
   value.push(nbRolls);
-  value.push(rolls);
+  value.push(rolls.map(x => modFunction(x, mod)));
   let results = []
   for (const roll in rolls) {
     results.push(comparisonFunction(modFunction(rolls[roll], modifier), Number(test)));
@@ -193,7 +193,7 @@ client.on("message", (message) => {
             for (var i=0; i<nbRoll; i++) {
               testsOutput.push(success[i] ? "success! ": "failed! ");
             }
-            message.channel.send("You tried to roll  " + comparisonMessage + " " + testTreshold + " on " + success.length + " tests, and here are your tests results : " + testsOutput.toString() + "\nYou rolled " + rollResult.toString())
+            message.channel.send("You tried to roll  " + comparisonMessage + " " + testTreshold + " on " + success.length + " tests, and here are your tests results : " + testsOutput.toString() + "\nYou rolled " + rollResult.toString() + "(those are post-modifier roll values)");
           } else {
             modMessage = modFunc==plus? "bonus " : "malus ";
             switch (success[0]) {
